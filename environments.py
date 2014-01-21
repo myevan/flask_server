@@ -146,6 +146,5 @@ if __name__ == '__main__':
 
     app = Flask(__name__)
     env = Environments(app, os.path.dirname(os.path.realpath(__file__)))
-    env.load_config_file(env.get_abs_path('config/builtin.yml'))
+    #env.load_config_file(env.get_abs_path('config/builtin.yml'))
     print repr(env)
-    env.make_logs()
