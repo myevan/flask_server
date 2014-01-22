@@ -5,10 +5,21 @@ import argparse
 
 import blog
 
-from framework import app, env
+from framework import app, env, db
+
+def run_script(ns):
+    if not ns.source_path:
+        print 'NO_SOURCE_PATH'
+        return -101
+
+    env.load_config_file('./etc/flask/blog.yml')
+
+    execfile(ns.source_path, globals())
 
 def run_shell(ns):
-    code.interact('SHELL', local=dict(app=app, env=env))
+    env.load_config_file('./etc/flask/blog.yml')
+       
+    code.interact('SHELL', local=dict(app=app, env=env, db=db))
 
 def run_server(ns):
     env.load_config_file('./etc/flask/blog.yml')
@@ -21,8 +32,12 @@ def main(program_path, program_args):
     sub_parsers = main_parser.add_subparsers()
 
     server_parser = sub_parsers.add_parser('server')
-    server_parser.add_argument('--port', type=int, default=5000, help='port') 
+    server_parser.add_argument('-P', '--port', type=int, default=5000, help='port') 
     server_parser.set_defaults(func=run_server)
+
+    script_parser = sub_parsers.add_parser('script')
+    script_parser.add_argument('-S', '--source-path', type=str, help='python source path') 
+    script_parser.set_defaults(func=run_script)
 
     shell_parser = sub_parsers.add_parser('shell')
     #shell_parser.add_argument('--config', action='store', help='config path') 
@@ -32,8 +47,8 @@ def main(program_path, program_args):
         main_parser.print_help()
         return -1
 
-    command_namespace = main_parser.parse_args(program_args)
-    command_namespace.func(command_namespace)
+    ns = main_parser.parse_args(program_args)
+    return ns.func(ns)
 
 if __name__ == '__main__':
     import sys
