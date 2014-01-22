@@ -9,6 +9,8 @@ def run_shell(ns):
     code.interact('SHELL', local=dict(app=app, env=env))
 
 def run_server(ns):
+    from blog.views import blog_blueprint
+    app.register_blueprint(blog_blueprint)
     app.run('0.0.0.0', port=ns.port)
 
 def main(program_path, program_args):
