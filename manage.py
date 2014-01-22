@@ -9,6 +9,8 @@ def run_shell(ns):
     code.interact('SHELL', local=dict(app=app, env=env))
 
 def run_server(ns):
+    env.load_config_file('./etc/flask/blog.yml')
+
     from blog.views import blog_blueprint
     app.register_blueprint(blog_blueprint)
     app.run('0.0.0.0', port=ns.port)

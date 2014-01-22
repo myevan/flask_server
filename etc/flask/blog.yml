@@ -1,0 +1,2 @@
+CSRF_ENABLE: true
+SECRET_KEY: "you-will-never-guess"
