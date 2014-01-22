@@ -11,7 +11,6 @@ class Environments(object):
     SQLITE_URI_MEMORY = 'sqlite:///:memory:'
 
     def __init__(self, app, project_dir_path):
-        print project_dir_path
         self.app = app
         self.app.config['DEBUG'] = True
         self.app.config['PROJECT_DIR_PATH'] = project_dir_path
