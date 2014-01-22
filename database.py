@@ -79,6 +79,9 @@ class SQLAlchemy(BaseSQLAlchemy):
         for table in self.Model.metadata.tables.itervalues():
             if bind and re.match(table.info.get('bind_key'), bind):
                 result.append(table)
+            elif table.info.get('bind_key') is None:
+                result.append(table)
+
         return result
 
 
