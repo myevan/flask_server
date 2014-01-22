@@ -3,13 +3,13 @@ from framework import app
 from flask import Blueprint
 from flask import render_template
 
-from flask import flash, redirect
+from flask import flash, redirect, url_for
 from forms import LoginForm
 
-blog_blueprint = Blueprint('blog', __name__, url_prefix='/blog',  template_folder='templates')
+bp = Blueprint('blog', __name__, url_prefix='/blog',  template_folder='templates')
 
-@blog_blueprint.route('/')
-@blog_blueprint.route('/index')
+@bp.route('/')
+@bp.route('/index')
 def index():
     user = { 'nickname': 'Miguel' } # fake user
     posts = [ # fake array of posts
@@ -28,9 +28,12 @@ def index():
         posts = posts)
 
 
-@blog_blueprint.route('/login', methods = ['GET', 'POST'])
+@bp.route('/login', methods = ['GET', 'POST'])
 def login():
     form = LoginForm()
+    if form.validate_on_submit():
+        flash('Login requested for OpenID="' + form.openid.data + '", remember_me=' + str(form.remember_me.data))
+        return redirect(url_for('.index'))
     return render_template('login.html', 
         title = 'Sign In',
         form = form)
