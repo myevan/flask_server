@@ -4,6 +4,7 @@ from flask_sqlalchemy import orm, partial, get_state
 
 import re
 
+
 class _BoundSection(object):
     def __init__(self, db_session_cls, name):
         self.db_session = db_session_cls()
@@ -16,39 +17,40 @@ class _BoundSection(object):
         self.db_session.pop_binding()
         self.db_session.close()
 
+
 class _SignallingSession(BaseSignallingSession):
     def __init__(self, *args, **kwargs):
         BaseSignallingSession.__init__(self, *args, **kwargs)
-        self._names = []
-        self._name = None
+        self._binding_keys = []
+        self._binding_key = None
 
-    def push_binding(self, name):
-        self._names.append(self._name)
-        self._name = name
+    def push_binding(self, key):
+        self._binding_keys.append(self._binding_key)
+        self._binding_key = key
 
     def pop_binding(self):
-        self._name = self._names.pop()
+        self._binding_key = self._binding_keys.pop()
 
     def get_bind(self, mapper, clause=None):
         if mapper is None:
-            bind_key = self._name
+            binding_key = self._binding_key
         else:
-            if self._name is None:
-                info = getattr(mapper.mapped_table, 'info' , {})
-                bind_key = info.get('bind_key')
+            if self._binding_key is None:
+                info = getattr(mapper.mapped_table, 'info', {})
+                binding_key = info.get('bind_key')
             else:
-                bind_key = self._name
+                binding_key = self._binding_key
 
-        if bind_key is None:
+        if binding_key is None:
             return BaseSignallingSession.get_bind(self, mapper, clause)
         else:
             state = get_state(self.app)
-            return state.db.get_engine(self.app, bind=bind_key)
+            return state.db.get_engine(self.app, bind=binding_key)
 
 
 class SQLAlchemy(BaseSQLAlchemy):
-    def bind_key(self, name):
-        return _BoundSection(self.session, name)
+    def bind(self, key):
+        return _BoundSection(self.session, key)
 
     def create_scoped_session(self, options=None):
         """Helper factory method that creates a scoped session."""
@@ -121,12 +123,12 @@ if __name__ == '__main__':
     db.drop_all()
     db.create_all()
 
-    with db.bind_key('data_1'):
+    with db.bind('data_1'):
         user = User(nickname='a')
         db.session.add(user)
         db.session.commit()
 
-    with db.bind_key('data_2'):
+    with db.bind('data_2'):
         user = User(nickname='b')
         db.session.add(user)
         db.session.commit()
@@ -135,9 +137,9 @@ if __name__ == '__main__':
     db.session.add(user_log)
     db.session.commit()
 
-    with db.bind_key('data_1'):
+    with db.bind('data_1'):
         print User.query.all()
 
-    with db.bind_key('data_2'):
+    with db.bind('data_2'):
         print User.query.all()
 
