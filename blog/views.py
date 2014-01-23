@@ -1,17 +1,36 @@
-from framework import app
+from framework import app, db, lm, oid
 
 from flask import Blueprint
 from flask import render_template
 
 from flask import flash, redirect, url_for
+from flask import g, session, request
+
+from flask.ext.login import current_user, login_user, logout_user
+
 from forms import LoginForm
 
+from models import User
+from models import User, ROLE_USER, ROLE_ADMIN
+
+
+lm.login_view = 'login'
+
+
+@lm.user_loader
+def load_user(id):
+    return User.query.get(int(id))
+
 bp = Blueprint('blog', __name__, url_prefix='/blog',  template_folder='templates')
+
+@bp.before_request
+def before_request():
+    g.user = current_user
 
 @bp.route('/')
 @bp.route('/index')
 def index():
-    user = { 'nickname': 'Miguel' } # fake user
+    user = g.user
     posts = [ # fake array of posts
         { 
             'author': { 'nickname': 'John' }, 
@@ -27,14 +46,42 @@ def index():
         user = user,
         posts = posts)
 
-
 @bp.route('/login', methods = ['GET', 'POST'])
+@oid.loginhandler
 def login():
+    if g.user is not None and g.user.is_authenticated():
+        return redirect(url_for('.index'))
+
     form = LoginForm()
     if form.validate_on_submit():
-        flash('Login requested for OpenID="' + form.openid.data + '", remember_me=' + str(form.remember_me.data))
-        return redirect(url_for('.index'))
+        session['remember_me'] = form.remember_me.data
+        return oid.try_login(form.openid.data, ask_for=['nickname', 'email'], ask_for_optional=['fullname'])
     return render_template('login.html', 
         title = 'Sign In',
         form = form,
         providers = app.config['OPENID_PROVIDERS'])
+
+@oid.after_login
+def after_login(resp):
+    if resp.email is None or resp.email == "":
+        flash('Invalid login. Please try again.')
+        return redirect(url_for('login'))
+    user = User.query.filter_by(email=resp.email).first()
+    if user is None:
+        nickname = resp.nickname
+        if nickname is None or nickname == "":
+            nickname = resp.email.split('@')[0]
+        user = User(nickname = nickname, email = resp.email, role = ROLE_USER)
+        db.session.add(user)
+        db.session.commit()
+    remember_me = False
+    if 'remember_me' in session:
+        remember_me = session['remember_me']
+        session.pop('remember_me', None)
+    login_user(user, remember=remember_me)
+    return redirect(request.args.get('next') or url_for('index'))
+
+@bp.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('.index'))
