@@ -24,6 +24,9 @@ def run_shell(ns):
 def run_server(ns):
     env.load_config_file('./etc/flask/blog.yml')
 
+    db.drop_all()
+    db.create_all()
+
     app.register_blueprint(blog.bp)
     app.run('0.0.0.0', port=ns.port)
 

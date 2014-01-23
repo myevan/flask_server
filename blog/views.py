@@ -6,16 +6,17 @@ from flask import render_template
 from flask import flash, redirect, url_for
 from flask import g, session, request
 
-from flask.ext.login import current_user, login_user, logout_user
+from flask.ext.login import current_user, login_user, logout_user, login_required
+
+from datetime import datetime
 
 from forms import LoginForm
+from forms import EditForm
 
 from models import User
 from models import User, ROLE_USER, ROLE_ADMIN
 
-
-lm.login_view = 'login'
-
+lm.login_view = '.login'
 
 @lm.user_loader
 def load_user(id):
@@ -23,9 +24,13 @@ def load_user(id):
 
 bp = Blueprint('blog', __name__, url_prefix='/blog',  template_folder='templates')
 
-@bp.before_request
+@app.before_request
 def before_request():
     g.user = current_user
+    if g.user.is_authenticated():
+        g.user.last_seen = datetime.utcnow()
+        db.session.add(g.user)
+        db.session.commit()
 
 @bp.route('/')
 @bp.route('/index')
@@ -46,7 +51,7 @@ def index():
         user = user,
         posts = posts)
 
-@bp.route('/login', methods = ['GET', 'POST'])
+@bp.route('/login', methods=['GET', 'POST'])
 @oid.loginhandler
 def login():
     if g.user is not None and g.user.is_authenticated():
@@ -85,3 +90,36 @@ def after_login(resp):
 def logout():
     logout_user()
     return redirect(url_for('.index'))
+
+
+@bp.route('/user/<nickname>')
+@login_required
+def user(nickname):
+    user = User.query.filter_by(nickname = nickname).first()
+    if user == None:
+        flash('User ' + nickname + ' not found.')
+        return redirect(url_for('index'))
+    posts = [
+        { 'author': user, 'body': 'Test post #1' },
+        { 'author': user, 'body': 'Test post #2' }
+    ]
+    return render_template('user.html',
+        user = user,
+        posts = posts)
+
+@bp.route('/edit', methods=['GET', 'POST'])
+@login_required
+def edit():
+    form = EditForm()
+    if form.validate_on_submit():
+        g.user.nickname = form.nickname.data
+        g.user.about_me = form.about_me.data
+        db.session.add(g.user)
+        db.session.commit()
+        flash('Your changes have been saved.')
+        return redirect(url_for('.edit'))
+    else:
+        form.nickname.data = g.user.nickname
+        form.about_me.data = g.user.about_me
+    return render_template('edit.html',
+        form = form)
