@@ -81,7 +81,7 @@ class SQLAlchemy(BaseSQLAlchemy):
     def BindingKeyPattern(self, pattern):
         return _BindingKeyPattern(pattern)
     
-    def bind(self, key):
+    def binding(self, key):
         return _BoundSection(self.session, key)
 
     def create_scoped_session(self, options=None):
@@ -171,7 +171,7 @@ if __name__ == '__main__':
     db.session.add(notice)
     db.session.commit()
 
-    with db.bind('master_user'):
+    with db.binding('master_user'):
         notice = Notice(msg='NOTICE2')
         db.session.add(notice)
         db.session.commit()
@@ -180,7 +180,7 @@ if __name__ == '__main__':
         db.session.add(user)
         db.session.commit()
 
-        with db.bind('master_log'):
+        with db.binding('master_log'):
             notice = Notice(msg='NOTICE3')
             db.session.add(notice)
             db.session.commit()
@@ -192,18 +192,18 @@ if __name__ == '__main__':
     os.system('sqlite3 master_user.db ".backup slave_user.db"')
     os.system('sqlite3 master_log.db ".backup slave_log.db"')
 
-    with db.bind('master_user'):
+    with db.binding('master_user'):
         user = User.query.filter_by(nickname='jaru').first()
         user.nickname='JARU'
         db.session.add(user)
         db.session.commit()
 
-    with db.bind('master_user'):
+    with db.binding('master_user'):
         print User.query.all()
 
-    with db.bind('slave_user'):
+    with db.binding('slave_user'):
         print User.query.all()
 
-    with db.bind('slave_log'):
+    with db.binding('slave_log'):
         print LoginLog.query.all()
 

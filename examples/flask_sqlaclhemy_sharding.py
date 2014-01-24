@@ -90,7 +90,7 @@ class SQLAlchemy(BaseSQLAlchemy):
     def BindingKeyPattern(self, pattern):
         return _BindingKeyPattern(self, pattern)
 
-    def bind(self, key):
+    def binding(self, key):
         return _BoundSection(self.session, key)
 
     def create_scoped_session(self, options=None):
@@ -181,7 +181,7 @@ if __name__ == '__main__':
     db.session.commit()
 
     nickname = 'jaru'
-    with db.bind(User.get_shard_key(nickname)):
+    with db.binding(User.get_shard_key(nickname)):
         notice = Notice(msg='NOTICE2')
         db.session.add(notice)
         db.session.commit()
@@ -190,7 +190,7 @@ if __name__ == '__main__':
         db.session.add(user)
         db.session.commit()
 
-        with db.bind('master_log'):
+        with db.binding('master_log'):
             notice = Notice(msg='NOTICE3')
             db.session.add(notice)
             db.session.commit()
