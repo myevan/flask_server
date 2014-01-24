@@ -31,8 +31,8 @@ if __name__ == '__main__':
 
     user = User(nickname='jaru')
     db.session.add(user)
+    db.session.commit()
 
     login_log = LoginLog(owner=user)
     db.session.add(login_log)
-
     db.session.commit()
