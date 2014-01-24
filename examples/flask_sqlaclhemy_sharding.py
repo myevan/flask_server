@@ -136,6 +136,9 @@ class Notice(db.Model):
     msg = db.Column(db.String, nullable=False)
     ctime = db.Column(db.DateTime, default=datetime.now(), nullable=False)
 
+    def __repr__(self):
+        return "%s<id=%d,msg='%s'>" % (self.__class__.__name__, self.id, self.msg)
+
 class User(db.Model):
     __bind_key__ = db.BindingKeyPattern('[^_]+_user_\d\d')
 
@@ -143,6 +146,9 @@ class User(db.Model):
     nickname = db.Column(db.String(80), unique=True)
 
     login_logs = db.relationship(lambda: LoginLog, backref='owner')
+
+    def __repr__(self):
+        return "%s<id=%d, nickname='%s'>" % (self.__class__.__name__, self.id, self.nickname)
 
     @classmethod
     def get_shard_key(cls, nickname):
