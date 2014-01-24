@@ -18,11 +18,14 @@ from models import User, ROLE_USER, ROLE_ADMIN
 
 lm.login_view = '.login'
 
-@lm.user_loader
-def load_user(id):
-    return User.query.get(int(id))
+@app.errorhandler(404)
+def page_not_found(error):
+    return render_template('404.html'), 404
 
-bp = Blueprint('blog', __name__, url_prefix='/blog',  template_folder='templates')
+@app.errorhandler(500)
+def internal_server_error(error):
+    db.session.rollback()
+    return render_template('500.html'), 404
 
 @app.before_request
 def before_request():
@@ -31,6 +34,12 @@ def before_request():
         g.user.last_seen = datetime.utcnow()
         db.session.add(g.user)
         db.session.commit()
+
+@lm.user_loader
+def load_user(id):
+    return User.query.get(int(id))
+
+bp = Blueprint('blog', __name__, url_prefix='/blog',  template_folder='templates')
 
 @bp.route('/')
 @bp.route('/index')
