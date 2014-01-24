@@ -125,14 +125,14 @@ app = Flask(__name__)
 db = SQLAlchemy(app)
 
 class Notice(db.Model):
-    __bind_key__ = 'globaldb'
+    __bind_key__ = 'global'
 
     id = db.Column(db.Integer, primary_key=True)
     msg = db.Column(db.String, nullable=False)
     ctime = db.Column(db.DateTime, default=datetime.now(), nullable=False)
 
 class User(db.Model):
-    __bind_key__ = BindingKeyPattern('[^_]+_userdb')
+    __bind_key__ = BindingKeyPattern('[^_]+_user')
 
     id = db.Column(db.Integer, primary_key=True)
     nickname = db.Column(db.String(80), unique=True)
@@ -141,7 +141,7 @@ class User(db.Model):
 
 
 class LoginLog(db.Model):
-    __bind_key__ = BindingKeyPattern('[^_]+_logdb')
+    __bind_key__ = BindingKeyPattern('[^_]+_log')
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey(User.id))
@@ -151,11 +151,11 @@ class LoginLog(db.Model):
 if __name__ == '__main__':
     app.config['SQLALCHEMY_ECHO'] = True
     app.config['SQLALCHEMY_BINDS'] = {
-        'globaldb': 'sqlite:///./global.db',
-        'master_userdb': 'sqlite:///./master_user.db',
-        'slave_userdb': 'sqlite:///./slave_user.db',
-        'master_logdb':  'sqlite:///./master_log.db', 
-        'slave_logdb':  'sqlite:///./slave_log.db', 
+        'global': 'sqlite:///./global.db',
+        'master_user': 'sqlite:///./master_user.db',
+        'slave_user': 'sqlite:///./slave_user.db',
+        'master_log':  'sqlite:///./master_log.db', 
+        'slave_log':  'sqlite:///./slave_log.db', 
     }
         
     db.drop_all()
@@ -165,7 +165,7 @@ if __name__ == '__main__':
     db.session.add(notice)
     db.session.commit()
 
-    with db.bind('master_userdb'):
+    with db.bind('master_user'):
         notice = Notice(msg='NOTICE2')
         db.session.add(notice)
         db.session.commit()
@@ -174,7 +174,7 @@ if __name__ == '__main__':
         db.session.add(user)
         db.session.commit()
 
-        with db.bind('master_logdb'):
+        with db.bind('master_log'):
             notice = Notice(msg='NOTICE3')
             db.session.add(notice)
             db.session.commit()

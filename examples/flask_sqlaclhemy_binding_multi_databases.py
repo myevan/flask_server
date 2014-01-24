@@ -6,7 +6,7 @@ app = Flask(__name__)
 db = SQLAlchemy(app)
 
 class User(db.Model):
-    __bind_key__ = 'userdb'
+    __bind_key__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     nickname = db.Column(db.String(80), unique=True)
 
@@ -14,7 +14,7 @@ class User(db.Model):
 
 
 class LoginLog(db.Model):
-    __bind_key__ = 'logdb'
+    __bind_key__ = 'log'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey(User.id))
     ctime = db.Column(db.DateTime, default=datetime.now(), nullable=False)
@@ -22,8 +22,8 @@ class LoginLog(db.Model):
 if __name__ == '__main__':
     app.config['SQLALCHEMY_ECHO'] = True
     app.config['SQLALCHEMY_BINDS'] = {
-        'userdb': 'sqlite:///./user.db',
-        'logdb':  'sqlite:///./log.db', 
+        'user': 'sqlite:///./user.db',
+        'log':  'sqlite:///./log.db', 
     }
         
     db.drop_all()
