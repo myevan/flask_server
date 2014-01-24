@@ -82,7 +82,6 @@ class SQLAlchemy(BaseSQLAlchemy):
         return _BoundSection(self.session, key)
 
     def create_scoped_session(self, options=None):
-        """Helper factory method that creates a scoped session."""
         if options is None:
             options = {}
         scopefunc=options.pop('scopefunc', None)
@@ -93,8 +92,6 @@ class SQLAlchemy(BaseSQLAlchemy):
     def get_binds(self, app=None):
         retval = BaseSQLAlchemy.get_binds(self, app)
        
-        # get the binds for None again in order to make sure that 
-        # it is the default bind for tables without an explicit bind 
         bind = None
         engine = self.get_engine(app, bind)
         tables = self.get_tables_for_bind(bind)
@@ -102,10 +99,6 @@ class SQLAlchemy(BaseSQLAlchemy):
         return retval
 
     def get_tables_for_bind(self, bind=None):
-        """
-        Returns a list of all tables relevant for a bind.
-        Tables without an explicit __bind_key__ will be bound to all binds.
-        """
         result = []
         for table in self.Model.metadata.tables.itervalues():
             table_bind_key = table.info.get('bind_key')
