@@ -30,8 +30,9 @@ if __name__ == '__main__':
     db.create_all()
 
     user = User(nickname='jaru')
-    login_log = LoginLog(owner=user)
-
     db.session.add(user)
+
+    login_log = LoginLog(owner=user)
     db.session.add(login_log)
+
     db.session.commit()
