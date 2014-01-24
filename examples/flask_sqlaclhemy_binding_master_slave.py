@@ -9,7 +9,7 @@ from flask_sqlalchemy import orm, partial, get_state
 
 from datetime import datetime
 
-class BindingKeyPattern(object):
+class _BindingKeyPattern(object):
     def __init__(self, pattern):
         self.raw_pattern = pattern
         self.compiled_pattern = re.compile(pattern)
@@ -78,6 +78,9 @@ class _SignallingSession(BaseSignallingSession):
 
 
 class SQLAlchemy(BaseSQLAlchemy):
+    def BindingKeyPattern(self, pattern):
+        return _BindingKeyPattern(pattern)
+    
     def bind(self, key):
         return _BoundSection(self.session, key)
 
@@ -106,7 +109,7 @@ class SQLAlchemy(BaseSQLAlchemy):
                 result.append(table)
             else:
                 if bind:
-                    if type(table_bind_key) is BindingKeyPattern and table_bind_key.match(bind):
+                    if type(table_bind_key) is _BindingKeyPattern and table_bind_key.match(bind):
                         result.append(table)
                     elif type(table_bind_key) is str and table_bind_key == bind:
                         result.append(table)
@@ -124,24 +127,34 @@ class Notice(db.Model):
     msg = db.Column(db.String, nullable=False)
     ctime = db.Column(db.DateTime, default=datetime.now(), nullable=False)
 
+    def __repr__(self):
+        return "%s<id=%d,msg='%s'>" % (self.__class__.__name__, self.id, self.msg)
+
 class User(db.Model):
-    __bind_key__ = BindingKeyPattern('[^_]+_user')
+    __bind_key__ = db.BindingKeyPattern('[^_]+_user')
 
     id = db.Column(db.Integer, primary_key=True)
     nickname = db.Column(db.String(80), unique=True)
 
     login_logs = db.relationship(lambda: LoginLog, backref='owner')
 
+    def __repr__(self):
+        return "%s<id=%d, nickname='%s'>" % (self.__class__.__name__, self.id, self.nickname)
+
 
 class LoginLog(db.Model):
-    __bind_key__ = BindingKeyPattern('[^_]+_log')
+    __bind_key__ = db.BindingKeyPattern('[^_]+_log')
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey(User.id))
     ctime = db.Column(db.DateTime, default=datetime.now(), nullable=False)
 
+    def __repr__(self):
+        return "%s<id=%d, uer_id=%d, ctime='%s'>" % (self.__class__.__name__, self.id, self.user_id, repr(self.ctime))
 
 if __name__ == '__main__':
+    import os
+
     app.config['SQLALCHEMY_ECHO'] = True
     app.config['SQLALCHEMY_BINDS'] = {
         'global': 'sqlite:///./global.db',
@@ -175,3 +188,22 @@ if __name__ == '__main__':
             login_log = LoginLog(owner=user)
             db.session.add(login_log)
             db.session.commit()
+
+    os.system('sqlite3 master_user.db ".backup slave_user.db"')
+    os.system('sqlite3 master_log.db ".backup slave_log.db"')
+
+    with db.bind('master_user'):
+        user = User.query.filter_by(nickname='jaru').first()
+        user.nickname='JARU'
+        db.session.add(user)
+        db.session.commit()
+
+    with db.bind('master_user'):
+        print User.query.all()
+
+    with db.bind('slave_user'):
+        print User.query.all()
+
+    with db.bind('slave_log'):
+        print LoginLog.query.all()
+
