@@ -54,18 +54,15 @@ def run_script(ns):
         print 'NO_SOURCE_PATH'
         return -101
 
-    server.env.load_config_file('./config/flask/blog.yml')
-
     for source_path in ns.source_paths:
-        execfile(ns.source_path, globals())
+        execfile(source_path, globals())
 
 def run_shell(ns):
-    server.env.load_config_file('./config/flask/blog.yml')
-       
+    server.env.load_config_file(ns.config_path)
     code.interact('SHELL', local=dict(server=server))
 
 def run_server(ns):
-    server.env.load_config_file('./config/flask/blog.yml')
+    server.env.load_config_file(ns.config_path)
 
     server.db.drop_all()
     server.db.create_all()
@@ -76,6 +73,8 @@ def run_server(ns):
 
 def main(program_path, program_args):
     main_parser = argparse.ArgumentParser()
+    main_parser.add_argument('-C', '--config-path', type=str, default='./configs/blog.yml', help='config path') 
+
     sub_parsers = main_parser.add_subparsers()
 
     install_package_parser = sub_parsers.add_parser('install_package')
@@ -89,7 +88,6 @@ def main(program_path, program_args):
     run_server_parser = sub_parsers.add_parser('run_server')
     run_server_parser.add_argument('-P', '--port', type=int, default=5000, help='port') 
     run_server_parser.set_defaults(func=run_server)
-
 
     run_shell_parser = sub_parsers.add_parser('run_shell')
     run_shell_parser.set_defaults(func=run_shell)
