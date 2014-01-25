@@ -5,22 +5,15 @@ import sys
 import code
 import argparse
 
-def exec_command_line(exe_path, args):
-    cmd_line = '%s %s' % (exe_path, ' '.join(args))
-    print cmd_line
-    return os.system(cmd_line)
-
 try:
-    import blog
-
-    from framework import app, env, db
-
+    import server
+    import server.blog
 except ImportError as e:
+    print(e)
+    print('')
+
     venv_dir_path = os.environ.get('VIRTUAL_ENV', None)
     if venv_dir_path is None:
-        print(e)
-        print('')
-
         workon_home_dir_path = os.environ.get('WORKON_HOME', None)
         if workon_home_dir_path is None:
             print('\t$ sudo pip install virtualenvwrapper')
@@ -39,6 +32,12 @@ except ImportError as e:
     else:
         print('install requirements')
         print('\t$ pip install -r requirements.txt')
+        raise
+
+def exec_command_line(exe_path, args):
+    cmd_line = '%s %s' % (exe_path, ' '.join(args))
+    print cmd_line
+    return os.system(cmd_line)
 
 def install_package(ns):
     if not ns.package_names:
@@ -46,33 +45,33 @@ def install_package(ns):
         return -101
 
     for package_name in ns.package_names:
-        exec_command_line(EXE_VENV_PIP, ['install', package_name])
+        exec_command_line('pip', ['install', package_name])
 
-    exec_command_line(EXE_VENV_PIP, ['freeze', '> requirements.txt'])
+    exec_command_line('pip', ['freeze', '> requirements.txt'])
 
 def run_script(ns):
     if not ns.source_paths:
         print 'NO_SOURCE_PATH'
         return -101
 
-    env.load_config_file('./config/flask/blog.yml')
+    server.env.load_config_file('./config/flask/blog.yml')
 
     for source_path in ns.source_paths:
         execfile(ns.source_path, globals())
 
 def run_shell(ns):
-    env.load_config_file('./config/flask/blog.yml')
+    server.env.load_config_file('./config/flask/blog.yml')
        
-    code.interact('SHELL', local=dict(app=app, env=env, db=db))
+    code.interact('SHELL', local=dict(server=server))
 
 def run_server(ns):
-    env.load_config_file('./config/flask/blog.yml')
+    server.env.load_config_file('./config/flask/blog.yml')
 
-    db.drop_all()
-    db.create_all()
-
-    app.register_blueprint(blog.bp)
-    app.run('0.0.0.0', port=ns.port)
+    server.db.drop_all()
+    server.db.create_all()
+  
+    server.app.register_blueprint(server.blog.bp)
+    server.app.run('0.0.0.0', port=ns.port)
 
 
 def main(program_path, program_args):

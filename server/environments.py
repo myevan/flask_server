@@ -11,26 +11,29 @@ class Environments(object):
     SQLITE_URI_MEMORY = 'sqlite:///:memory:'
 
     def __init__(self, app, project_dir_path):
+        temp_dir_path = os.path.join(project_dir_path, 'temp')
+        if not os.access(temp_dir_path, os.R_OK):
+            os.makedirs(temp_dir_path)
+
         self.app = app
         self.app.config['DEBUG'] = True
         self.app.config['PROJECT_DIR_PATH'] = project_dir_path
+        self.app.config['TEMP_DIR_PATH'] = temp_dir_path
 
-        log_dir_path = os.path.join(project_dir_path, './var/log')
-        self.app.config['LOG_DEBUG_FILE_PATH'] = self.get_log_abs_path(log_dir_path, "APP_debug.log")
+        self.app.config['LOG_DEBUG_FILE_PATH'] = os.path.join(temp_dir_path, "APP_debug.temp")
         self.app.config['LOG_DEBUG_FILE_MAX_MB_SIZE'] = 100
         self.app.config['LOG_DEBUG_BACKUP_COUNT'] = 2
 
-        self.app.config['LOG_INFO_FILE_PATH'] = self.get_log_abs_path(log_dir_path, "APP_info.log")
+        self.app.config['LOG_INFO_FILE_PATH'] = os.path.join(temp_dir_path, "APP_info.temp")
         self.app.config['LOG_INFO_FILE_MAX_MB_SIZE'] = 100
         self.app.config['LOG_INFO_BACKUP_COUNT'] = 2
 
-        self.app.config['LOG_ERROR_FILE_PATH'] = self.get_log_abs_path(log_dir_path, "APP_error.log")
+        self.app.config['LOG_ERROR_FILE_PATH'] = os.path.join(temp_dir_path, "APP_error.temp")
         self.app.config['LOG_ERROR_FILE_MAX_MB_SIZE'] = 100
         self.app.config['LOG_ERROR_BACKUP_COUNT'] = 2
 
         self.app.config['LOG_FORMAT'] = "%(asctime)-15s %(message)s"
 
-        data_dir_path = os.path.join(project_dir_path, '/var/data')
         self.app.config['SQLALCHEMY_DATABASE_URI'] = self.SQLITE_URI_MEMORY
         self.app.config['SQLALCHEMY_BINDS'] = {} 
         self.app.config['SQLALCHEMY_ECHO'] = True
@@ -38,20 +41,21 @@ class Environments(object):
         self.log_formatter = None
 
     def __repr__(self):
-        return '#### environments\n%s' % '\n'.join('* %s: %s' % (key, value) for key, value in self.app.config.items())
+        return '#### environments\n%s' % '\n'.join(sorted('* %s: %s' % (key, value) for key, value in self.app.config.items()))
 
     @property
     def project_dir_path(self):
         "프로젝트 디렉토리 경로"
         return self.app.config['PROJECT_DIR_PATH']
 
+    @property
+    def temp_dir_path(self):
+        "임시 디렉토리 경로"
+        return self.app.config['TEMP_DIR_PATH']
+
     def get_sqlite_uri(self, data_dir_path, data_rel_path):
         "SQLite 주소를 얻는다"
         return self.SQLITE_SCHEMA + self.get_abs_path(os.path.join(data_dir_path, data_rel_path))
-
-    def get_log_abs_path(self, log_dir_path, log_rel_path):
-        "로그 절대 경로를 얻는다"
-        return self.get_abs_path(os.path.join(log_dir_path, log_rel_path))
 
     def get_abs_path(self, rel_path):
         "상대 경로로 절대 경로를 얻는다"

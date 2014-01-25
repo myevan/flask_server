@@ -1,4 +1,4 @@
-from framework import db
+from server import db
 from hashlib import md5
 
 ROLE_USER = 0

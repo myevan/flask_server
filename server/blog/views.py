@@ -1,4 +1,4 @@
-from framework import app, db, lm, oid
+from .. import app, db, lm, oid
 
 from flask import Blueprint
 from flask import render_template
