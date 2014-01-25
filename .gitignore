@@ -37,7 +37,5 @@ nosetests.xml
 # PyCharm
 .idea
 
-# Mr Developer
-.mr.developer.cfg
-.project
-.pydevproject
+# Project
+venv
