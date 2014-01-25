@@ -12,17 +12,17 @@ def run_script(ns):
         print 'NO_SOURCE_PATH'
         return -101
 
-    env.load_config_file('./etc/flask/blog.yml')
+    env.load_config_file('./config/flask/blog.yml')
 
     execfile(ns.source_path, globals())
 
 def run_shell(ns):
-    env.load_config_file('./etc/flask/blog.yml')
+    env.load_config_file('./config/flask/blog.yml')
        
     code.interact('SHELL', local=dict(app=app, env=env, db=db))
 
 def run_server(ns):
-    env.load_config_file('./etc/flask/blog.yml')
+    env.load_config_file('./config/flask/blog.yml')
 
     db.drop_all()
     db.create_all()
