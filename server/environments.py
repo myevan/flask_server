@@ -10,25 +10,24 @@ class Environments(object):
     SQLITE_SCHEMA = 'sqlite:///'
     SQLITE_URI_MEMORY = 'sqlite:///:memory:'
 
-    def __init__(self, app, project_dir_path):
-        temp_dir_path = os.path.join(project_dir_path, 'temp')
-        if not os.access(temp_dir_path, os.R_OK):
-            os.makedirs(temp_dir_path)
+    def __init__(self, app, server_dir_path):
+        project_dir_path = os.path.dirname(server_dir_path)
+        temp_dir_path = os.path.join(project_dir_path, 'TEMP')
 
         self.app = app
         self.app.config['DEBUG'] = True
         self.app.config['PROJECT_DIR_PATH'] = project_dir_path
         self.app.config['TEMP_DIR_PATH'] = temp_dir_path
 
-        self.app.config['LOG_DEBUG_FILE_PATH'] = os.path.join(temp_dir_path, "APP_debug.temp")
+        self.app.config['LOG_DEBUG_FILE_PATH'] = os.path.join(temp_dir_path, "APP_debug.log")
         self.app.config['LOG_DEBUG_FILE_MAX_MB_SIZE'] = 100
         self.app.config['LOG_DEBUG_BACKUP_COUNT'] = 2
 
-        self.app.config['LOG_INFO_FILE_PATH'] = os.path.join(temp_dir_path, "APP_info.temp")
+        self.app.config['LOG_INFO_FILE_PATH'] = os.path.join(temp_dir_path, "APP_info.log")
         self.app.config['LOG_INFO_FILE_MAX_MB_SIZE'] = 100
         self.app.config['LOG_INFO_BACKUP_COUNT'] = 2
 
-        self.app.config['LOG_ERROR_FILE_PATH'] = os.path.join(temp_dir_path, "APP_error.temp")
+        self.app.config['LOG_ERROR_FILE_PATH'] = os.path.join(temp_dir_path, "APP_error.log")
         self.app.config['LOG_ERROR_FILE_MAX_MB_SIZE'] = 100
         self.app.config['LOG_ERROR_BACKUP_COUNT'] = 2
 
@@ -57,14 +56,11 @@ class Environments(object):
         "SQLite 주소를 얻는다"
         return self.SQLITE_SCHEMA + self.get_abs_path(os.path.join(data_dir_path, data_rel_path))
 
-    def get_abs_path(self, rel_path):
-        "상대 경로로 절대 경로를 얻는다"
-        return os.path.normpath(os.path.join(self.project_dir_path, rel_path))
-
     def load_config_file(self, config_file_path):
         "설정 파일을 불러온다"
+
         try:
-            with open(config_file_path) as config_file:
+            with self._open_file(config_file_path) as config_file:
                 self.load_config_dict(yaml.load(config_file))
         except IOError as e:
             print('Solution:')
@@ -75,52 +71,70 @@ class Environments(object):
     def load_config_dict(self, config_dict):
         "설정 사전을 불러온다"
         if config_dict:
-            self.app.config.update(config_dict)
+            for config_key, config_value in config_dict.iteritems():
+                if config_key == 'SQLALCHEMY_DATABASE_URI':
+                    if config_value.startswith(self.SQLITE_SCHEMA): # SQLITE uri 경로를 실제 경로로 변경
+                        self.app.config[config_key] = self.SQLITE_SCHEMA + os.path.realpath(config_value[len(self.SQLITE_SCHEMA):])
+                elif config_key == 'SQLALCHEMY_BINDS': # SQLITE uri 경로를 실제 경로로 변경
+                    self.app.config[config_key] = dict((bind_key, self.SQLITE_SCHEMA + os.path.realpath(bind_value[len(self.SQLITE_SCHEMA):])) for bind_key, bind_value in config_value)
+                else:
+                    self.app.config[config_key] = config_value
 
-    def make_logs(self):
-        "로그 파일을 생성한다"
+    def prepare_all(self):
+        "모든 환경을 준비한다"
 
-        self._make_log_formatter()
-        self._make_debug_log()
-        self._make_error_log()
-        self._make_info_log()
+        self._prepare_log_formatter()
+        self._prepare_debug_log()
+        self._prepare_error_log()
+        self._prepare_info_log()
 
-        self.__prepare_sqlalchemy_database(self.app.config['SQLALCHEMY_DATABASE_URI'])
+        self._prepare_sqlalchemy_database(self.app.config['SQLALCHEMY_DATABASE_URI'])
 
         for bind_uri in self.app.config['SQLALCHEMY_BINDS'].values():
-            self.__prepare_sqlalchemy_database(bind_uri)
+            self._prepare_sqlalchemy_database(bind_uri)
 
-    def _make_log_formatter(self):
+    def _open_file(self, file_path, *args, **kwargs):
+        file_real_path = os.path.realpath(file_path)
+        return open(file_real_path, *args, **kwargs)
+
+    def _make_directory(self, dir_path):
+        dir_real_path = os.path.realpath(dir_path)
+        if dir_real_path == '/Users/jaru/MoonrabbitProjects/temp':
+            raise Exception('!!')
+
+        if not os.access(dir_real_path, os.R_OK):
+            os.makedirs(dir_real_path)
+
+    def _prepare_log_formatter(self):
         self.log_formatter = logging.Formatter(self.app.config['LOG_FORMAT'])
 
-    def _make_debug_log(self):
+    def _prepare_debug_log(self):
         if self.app.config['DEBUG']:
-            self.__make_log_file(
+            self.__prepare_log_file(
                 logging.DEBUG,
                 self.app.config['LOG_DEBUG_FILE_PATH'],
                 log_max_mb_size=self.app.config['LOG_DEBUG_FILE_MAX_MB_SIZE'],
                 log_bak_count=self.app.config['LOG_DEBUG_BACKUP_COUNT'])
 
-    def _make_info_log(self):
-        self.__make_log_file(
+    def _prepare_info_log(self):
+        self.__prepare_log_file(
             logging.INFO,
             self.app.config['LOG_INFO_FILE_PATH'],
             log_max_mb_size=self.app.config['LOG_INFO_FILE_MAX_MB_SIZE'],
             log_bak_count=self.app.config['LOG_INFO_BACKUP_COUNT'])
 
-    def _make_error_log(self):
-        self.__make_log_file(
+    def _prepare_error_log(self):
+        self.__prepare_log_file(
             logging.ERROR,
             self.app.config['LOG_ERROR_FILE_PATH'],
             log_max_mb_size=self.app.config['LOG_ERROR_FILE_MAX_MB_SIZE'],
             log_bak_count=self.app.config['LOG_ERROR_BACKUP_COUNT'])
 
-    def __make_log_file(
+    def __prepare_log_file(
             self, log_level, log_file_path, log_max_mb_size, log_bak_count):
 
         log_dir_path, log_file_name = os.path.split(log_file_path)
-        if not os.access(log_dir_path, os.W_OK):
-            os.makedirs(log_dir_path)
+        self._make_directory(log_dir_path)
 
         log_file_handler = RotatingFileHandler(
             log_file_path,
@@ -134,20 +148,18 @@ class Environments(object):
 
         self.app.logger.addHandler(log_file_handler)
 
-    @classmethod
-    def __prepare_sqlalchemy_database(cls, db_uri):
-        if db_uri.startswith(cls.SQLITE_SCHEMA):
-            data_dir_path, data_file_path = os.path.split(db_uri[len(cls.SQLITE_SCHEMA):])
+    def _prepare_sqlalchemy_database(self, db_uri):
+        if db_uri.startswith(self.SQLITE_SCHEMA):
+            data_dir_path, data_file_path = os.path.split(db_uri[len(self.SQLITE_SCHEMA):])
             if data_file_path == ':memory:':
                 return
-
-            if not os.access(data_dir_path, os.R_OK):
-                os.makedirs(data_dir_path)
+            
+            self._make_directory(data_dir_path)
 
 if __name__ == '__main__':
     from flask import Flask
 
     app = Flask(__name__)
     env = Environments(app, os.path.dirname(os.path.realpath(__file__)))
-    #env.load_config_file(env.get_abs_path('config/builtin.yml'))
+    #env.load_config_file(env.convert_abs_path('config/builtin.yml'))
     print repr(env)

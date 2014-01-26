@@ -12,3 +12,4 @@ db = SQLAlchemy(app)
 oid = OpenID(app, env.temp_dir_path)
 lm = LoginManager()
 lm.init_app(app)
+

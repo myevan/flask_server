@@ -5,5 +5,7 @@ OPENID_PROVIDERS:
 - name: "Google"
   url: "https://www.google.com/accounts/o8/id"
 
-SQLALCHEMY_DATABASE_URI: "sqlite:///../temp/blog.db"
+SQLALCHEMY_DATABASE_URI: "sqlite:///./temp/blog.db"
 SQLALCHEMY_ECHO: on
+
+RESET_ALL_PASSWORD: 'dev'
