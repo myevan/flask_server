@@ -12,7 +12,7 @@ class Environments(object):
 
     def __init__(self, app, server_dir_path):
         project_dir_path = os.path.dirname(server_dir_path)
-        temp_dir_path = os.path.join(project_dir_path, 'TEMP')
+        temp_dir_path = os.path.join(project_dir_path, 'temp')
 
         self.app = app
         self.app.config['DEBUG'] = True
@@ -52,9 +52,8 @@ class Environments(object):
         "임시 디렉토리 경로"
         return self.app.config['TEMP_DIR_PATH']
 
-    def get_sqlite_uri(self, data_dir_path, data_rel_path):
-        "SQLite 주소를 얻는다"
-        return self.SQLITE_SCHEMA + self.get_abs_path(os.path.join(data_dir_path, data_rel_path))
+    def convert_project_path(self, src_path):
+        return os.path.normpath(os.path.join(self.project_dir_path, src_path))
 
     def load_config_file(self, config_file_path):
         "설정 파일을 불러온다"
@@ -74,9 +73,9 @@ class Environments(object):
             for config_key, config_value in config_dict.iteritems():
                 if config_key == 'SQLALCHEMY_DATABASE_URI':
                     if config_value.startswith(self.SQLITE_SCHEMA): # SQLITE uri 경로를 실제 경로로 변경
-                        self.app.config[config_key] = self.SQLITE_SCHEMA + os.path.realpath(config_value[len(self.SQLITE_SCHEMA):])
+                        self.app.config[config_key] = self.SQLITE_SCHEMA + self.convert_project_path(config_value[len(self.SQLITE_SCHEMA):])
                 elif config_key == 'SQLALCHEMY_BINDS': # SQLITE uri 경로를 실제 경로로 변경
-                    self.app.config[config_key] = dict((bind_key, self.SQLITE_SCHEMA + os.path.realpath(bind_value[len(self.SQLITE_SCHEMA):])) for bind_key, bind_value in config_value)
+                    self.app.config[config_key] = dict((bind_key, self.SQLITE_SCHEMA + self.convert_project_path(bind_value[len(self.SQLITE_SCHEMA):])) for bind_key, bind_value in config_value)
                 else:
                     self.app.config[config_key] = config_value
 
@@ -94,14 +93,11 @@ class Environments(object):
             self._prepare_sqlalchemy_database(bind_uri)
 
     def _open_file(self, file_path, *args, **kwargs):
-        file_real_path = os.path.realpath(file_path)
+        file_real_path = self.convert_project_path(file_path)
         return open(file_real_path, *args, **kwargs)
 
     def _make_directory(self, dir_path):
-        dir_real_path = os.path.realpath(dir_path)
-        if dir_real_path == '/Users/jaru/MoonrabbitProjects/temp':
-            raise Exception('!!')
-
+        dir_real_path = self.convert_project_path(dir_path)
         if not os.access(dir_real_path, os.R_OK):
             os.makedirs(dir_real_path)
 
