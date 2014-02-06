@@ -4,6 +4,7 @@ import os
 import sys
 import code
 import argparse
+import unittest
 
 try:
     import server
@@ -82,6 +83,10 @@ def run_server(ns):
     server.app.register_blueprint(server.blog.bp)
     server.app.run('0.0.0.0', port=ns.port)
 
+def test_blog(ns):
+    from server.blog.tests import BlogTestCase
+    suite = unittest.TestLoader().loadTestsFromTestCase(BlogTestCase)
+    unittest.TextTestRunner(verbosity=2).run(suite)
 
 def main(program_path, program_args):
     main_parser = argparse.ArgumentParser()
@@ -106,6 +111,9 @@ def main(program_path, program_args):
 
     run_shell_parser = sub_parsers.add_parser('run_shell')
     run_shell_parser.set_defaults(func=run_shell)
+
+    test_blog_parser = sub_parsers.add_parser('test_blog')
+    test_blog_parser.set_defaults(func=test_blog)
 
     if program_args is None or len(program_args) == 0:
         main_parser.print_help()
